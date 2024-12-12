@@ -125,6 +125,16 @@ job06b=$(sbatch --account=$CC_ACCOUNT  \
     --parsable \
     $PIPE_DIR/06b_collect_final_metrics.sh)
 
+# Local depth analysis (SV estimation)
+job06c=$(sbatch --account=$CC_ACCOUNT  \
+    --array=1-${SAMPLE_ARRAY} \
+    --dependency=afterok:$job06b \
+    -D $SPECIES_DIR \
+    --mail-type=ALL \
+    --mail-user=$EMAIL \
+    --parsable \
+    $PIPE_DIR/06c_local_depth.sh)
+
 '''
 ##########################
 # Part 4 of the pipeline #
