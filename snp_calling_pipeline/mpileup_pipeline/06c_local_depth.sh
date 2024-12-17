@@ -35,17 +35,21 @@ module load bedtools
 if [ $SLURM_ARRAY_TASK_ID -eq 1 ]
 then
 
-# make a BED file of 5000 bp windows from FASTA index
+# make a BED file (and location list) of 5000 bp windows from FASTA index
 cat $GENOMEFOLDER/${GENOME}.fai | awk -v w=5000 '{chr = $1; chr_len = $2;
     for (start = 0; start < chr_len; start += w) {
         end = ((start + w) < chr_len ? (start + w) : chr_len);
         print chr "\t" start "\t" end;
     }
-}' | sort -k1,1 -k2,2n > 02_info_files/windows.bed
+}' | sort -u -k1,1 -k2,2n > 02_info_files/windows.bed
 
-# and a bed file of each gene
+cat 02_info_files/windows.bed | awk -F "\t" '{print $1":"$2"-"$3}' | sort -k1,1 > 02_info_files/windows.list
+
+# and a bed file (and location list) of each gene
 cat $GENOMEFOLDER/$ANNOTATION | awk '$3 == "gene" {print $1"\t"$4"\t"$5}' \
-| sort -k1,1 -k2,2n > 02_info_files/genes.bed
+| sort -u -k1,1 -k2,2n > 02_info_files/genes.bed
+
+cat 02_info_files/genes.bed | awk -F "\t" '{print $1":"$2"-"$3}' | sort -k1,1 > 02_info_files/genes.list
 
 fi
 
@@ -57,11 +61,17 @@ samtools depth -aa $ALIGNEDFOLDER/$bamfile > $SVFOLDER/${file}.depth
 
 # gene depth analysis
 echo \n">>> Computing depth of each gene for $file <<<"\n
-cat $SVFOLDER/${file}.depth | awk '{print $1"\t"$2"\t"$2"\t"$3}' | bedtools map -a 02_info_files/genes.bed -b stdin -c 4 -o mean > $SVFOLDER/${file}-genes.bed
+cat $SVFOLDER/${file}.depth | awk '{print $1"\t"$2"\t"$2"\t"$3}' | bedtools map -a 02_info_files/genes.bed -b stdin -c 4 -o mean -null 0 | awk -F "\t" '{print $1":"$2"-"$3"\t"$4}' | sort -k1,1 > $SVFOLDER/${file}-genes.tsv
+
+# sort gene depth results based on input bed file
+join -a 1 -e 0 -o '1.1 2.2' -t $'\t' 02_info_files/genes.list $SVFOLDER/${file}-genes.tsv > $SVFOLDER/${file}-genes.sorted.tsv
 
 # window depth analysis
 echo \n">>> Computing depth of each window for $file <<<"\n
-cat $SVFOLDER/${file}.depth | awk '{print $1"\t"$2"\t"$2"\t"$3}' | bedtools map -a 02_info_files/windows.bed -b stdin -c 4 -o mean > $SVFOLDER/${file}-windows.bed
+cat $SVFOLDER/${file}.depth | awk '{print $1"\t"$2"\t"$2"\t"$3}' | bedtools map -a 02_info_files/windows.bed -b stdin -c 4 -o mean -null 0 | awk -F "\t" '{print $1":"$2"-"$3"\t"$4}' | sort -k1,1  > $SVFOLDER/${file}-windows.tsv
+
+# sort window depth results based on input bed file
+join -a 1 -e 0 -o '1.1 2.2' -t $'\t' 02_info_files/windows.list $SVFOLDER/${file}-windows.tsv > $SVFOLDER/${file}-windows.sorted.tsv
 
 # overall genome depth
 echo \n">>> Computing depth of whole genome for $file <<<"\n
