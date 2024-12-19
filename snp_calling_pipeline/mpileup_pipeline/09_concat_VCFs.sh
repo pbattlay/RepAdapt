@@ -39,28 +39,31 @@ bcftools view --min-af 0.05:minor ${CONCATVCF}/${DATASET}_full_concatened.vcf.gz
 # make a header row
 echo -e "location\t$(cut -f2 02_info_files/datatable.txt | sort | uniq | paste -s -d '\t')" > 97_Local_Depth/depthheader.txt
 
+# get a list of sample names
+cut -f2 02_info_files/datatable.txt | sort | uniq > 02_info_files/samples.txt
+
 ### combine windowed depth analysis results
 # get just the second (depth) column of each output file
-cut -f2 02_info_files/datatable.txt | sort | uniq | sed 's/^/97_Local_Depth\//' | sed 's/$/-windows.sorted.tsv/' | while read tsv; do cut -f2 $tsv > ${tsv/-windows.sorted/-windows.sorted-depthcol} ; done
+while read samp; do cut -f2 97_Local_Depth/${samp}-windows.sorted.tsv > 97_Local_Depth/${samp}-windows.sorted.depthcol ; done < 02_info_files/samples.txt
 
 # combine both columns of the first output file and add the second column of all other files
-paste $(cut -f2 02_info_files/datatable.txt | sort | uniq | sed 's/^/97_Local_Depth\//' | sed 's/$/-windows.sorted.tsv/' | head -n 1) $(cut -f2 02_info_files/datatable.txt | sort | uniq | sed 's/^/97_Local_Depth\//' | sed 's/$/-windows.sorted-depthcol.tsv/' | tail -n +2) > 97_Local_Depth/combined-windows.temp
+paste $(sed 's/^/97_Local_Depth\//' 02_info_files/samples.txt | sed 's/$/-windows.sorted.tsv/' | head -n 1) $(sed 's/^/97_Local_Depth\//' 02_info_files/samples.txt | sed 's/$/-windows.sorted.depthcol/' | tail -n +2) > 97_Local_Depth/combined-windows.temp
 
 # add header
 cat 97_Local_Depth/depthheader.txt 97_Local_Depth/combined-windows.temp > 09_final_vcf/${DATASET}_combined_windows.tsv
 
 ### combine gene depth analysis results
 # get just the second (depth) column of each output file
-cut -f2 02_info_files/datatable.txt | sort | uniq | sed 's/^/97_Local_Depth\//' | sed 's/$/-genes.sorted.tsv/' | while read tsv; do cut -f2 $tsv > ${tsv/-genes/-genes-depthcol} ; done
+while read samp; do cut -f2 97_Local_Depth/${samp}-genes.sorted.tsv > 97_Local_Depth/${samp}-genes.sorted.depthcol ; done < 02_info_files/samples.txt
 
 # combine both columns of the first output file and add the second column of all other files
-paste $(cut -f2 02_info_files/datatable.txt | sort | uniq | sed 's/^/97_Local_Depth\//' | sed 's/$/-genes.sorted.tsv/' | head -n 1) $(cut -f2 02_info_files/datatable.txt | sort | uniq | sed 's/^/97_Local_Depth\//' | sed 's/$/-genes.sorted-depthcol.tsv/' | tail -n +2) > 97_Local_Depth/combined-genes.temp
+paste $(sed 's/^/97_Local_Depth\//' 02_info_files/samples.txt | sed 's/$/-genes.sorted.tsv/' | head -n 1) $(sed 's/^/97_Local_Depth\//' 02_info_files/samples.txt | sed 's/$/-genes.sorted.depthcol/' | tail -n +2) > 97_Local_Depth/combined-genes.temp
 
 # add header
 cat 97_Local_Depth/depthheader.txt 97_Local_Depth/combined-genes.temp > 09_final_vcf/${DATASET}_combined_genes.tsv
 
 ### make a table of whole-genome depths from samtools
-cut -f2 02_info_files/datatable.txt | sort | uniq | while read file; do echo -e $file"\t"$(cat 97_Local_Depth/$file-wg.txt); done > 09_final_vcf/${DATASET}_combined_wg.tsv
+while read samp; do echo -e $file"\t"$(cat 97_Local_Depth/$samp-wg.txt); done < 02_info_files/samples.txt > 09_final_vcf/${DATASET}_combined_wg.tsv
 
 echo "
 DONE! Check your files"
