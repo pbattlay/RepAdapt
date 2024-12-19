@@ -125,9 +125,11 @@ job06b=$(sbatch --account=$CC_ACCOUNT  \
     --parsable \
     $PIPE_DIR/06b_collect_final_metrics.sh)
 
+# the %50 limits slurm to ten jobs concurrently because the intermediate files are large
+# if you have a lot of free space this can be increased
 # Local depth analysis (SV estimation)
 job06c=$(sbatch --account=$CC_ACCOUNT  \
-    --array=1-${SAMPLE_ARRAY}%10 \
+    --array=1-${SAMPLE_ARRAY}%50 \
     --dependency=afterok:$job06b \
     -D $SPECIES_DIR \
     --mail-type=ALL \
