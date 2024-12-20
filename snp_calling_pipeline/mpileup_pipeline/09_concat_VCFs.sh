@@ -63,7 +63,7 @@ paste $(sed 's/^/97_Local_Depth\//' 02_info_files/samples.txt | sed 's/$/-genes.
 cat 97_Local_Depth/depthheader.txt 97_Local_Depth/combined-genes.temp > 09_final_vcf/${DATASET}_combined_genes.tsv
 
 ### make a table of whole-genome depths from samtools
-while read samp; do echo -e $file"\t"$(cat 97_Local_Depth/$samp-wg.txt); done < 02_info_files/samples.txt > 09_final_vcf/${DATASET}_combined_wg.tsv
+while read samp; do echo -e $samp"\t"$(cat 97_Local_Depth/$samp-wg.txt); done < 02_info_files/samples.txt > 09_final_vcf/${DATASET}_combined_wg.tsv
 
 echo "
 DONE! Check your files"
