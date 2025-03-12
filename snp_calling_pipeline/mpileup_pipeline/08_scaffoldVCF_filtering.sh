@@ -32,24 +32,10 @@ REGION_FILE=$(ls 02_info_files/all_scafs*pos | sed "${SLURM_ARRAY_TASK_ID}q;d")
     echo "
     >>> Filtering through BCFtools first!
     "
-    parallel -j8 "bcftools filter -e 'MQ < 30' $VCF/${DATASET}_{}.vcf -Oz > $FILTVCF/${DATASET}_{}_filteredTmp.vcf.gz" :::: $REGION_FILE
+    parallel -j8 "bcftools filter -e 'AC=AN || MQ < 30' $VCF/${DATASET}_{}.vcf -Oz > $FILTVCF/${DATASET}_{}_filtered.vcf.gz" :::: $REGION_FILE
 
-    echo "
-    >>> Filtering through VCFtools now!!
-    "
-    parallel -j8 "vcftools --gzvcf $FILTVCF/${DATASET}_{}_filteredTmp.vcf.gz \
-        --minQ 30 \
-        --minGQ 20 \
-        --minDP 5 \
-        --max-alleles 2 \
-        --max-missing 0.7 \
-        --recode \
-        --stdout > $FILTVCF/${DATASET}_{}_filtered.vcf" :::: $REGION_FILE
-
-    echo "
     >>> Preparation for concatenation of VCF files
     "
-    parallel -j8 "bgzip $FILTVCF/${DATASET}_{}_filtered.vcf" :::: $REGION_FILE
     parallel -j8 "tabix -p vcf $FILTVCF/${DATASET}_{}_filtered.vcf.gz" :::: $REGION_FILE
 
 echo "
